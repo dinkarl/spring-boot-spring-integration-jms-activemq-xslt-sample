@@ -1,0 +1,46 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jms="http://www.springframework.org/schema/integration/jms"
+	xmlns:integration="http://www.springframework.org/schema/integration"
+	xmlns:int-xml="http://www.springframework.org/schema/integration/xml"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd 
+	 http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd http://www.springframework.org/schema/integration/xml http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd">
+	
+
+		
+	<jms:message-driven-channel-adapter
+		id="firstJMSAdapater" destination-name="inputJMSQueue"
+		connection-factory="jmsConnectionFactory" channel="genIdChannel" />
+		
+	<jms:outbound-channel-adapter 
+		connection-factory="jmsConnectionFactory" destination-name="lastJMSQueue"
+		channel="lastChannel" />
+	
+	<integration:service-activator 
+		input-channel="storageChannel" ref="firstAmqService"
+		method="processMsg" />
+		
+	<integration:service-activator 
+		input-channel="genIdChannel" ref="firstAmqService" output-channel="firstChannel"
+		method="storeID" />
+		
+	<integration:channel id="genIdChannel"/>
+	
+	<integration:channel id="firstChannel">
+		<integration:interceptors>
+			<integration:wire-tap channel="storageChannel" />
+		</integration:interceptors>
+	</integration:channel>
+	
+	<integration:channel id="storageChannel" />
+	
+	<integration:channel id="lastChannel">
+		<integration:interceptors>
+			<integration:wire-tap channel="storageChannel"/>
+		</integration:interceptors>
+	</integration:channel>
+		
+	<int-xml:xslt-transformer id="xmlxsltTrans"
+		input-channel="firstChannel" output-channel="lastChannel"
+		xsl-resource="classpath:filexslt.xsl" />
+			
+</beans>
